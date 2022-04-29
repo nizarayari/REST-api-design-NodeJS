@@ -1,10 +1,18 @@
 import { newToken, verifyToken, signup, signin, protect } from '../auth'
 import jwt from 'jsonwebtoken'
 import config from '../../config'
-import { UserModel } from '../../resources/user/model'
+// import { UserModel } from '../../resources/user/model'
 
 describe('Authentication:', () => {
-  const User = new UserModel()
+  // const User = new UserModel()
+  // REVIEW:
+  // Since two UserModel instances existing at the same time impacts the test
+  // results, I remove the instance in the test, and use the instance initiated
+  // in auth.js for all the tests instead. However, I am not sure if that is a
+  // good pratice or not, since we will have some tests depending on others, and
+  // later when we test the HTTP response we cannot access the UserModel
+  // instance, therefore, we set the expected values manually, e.g. magic number
+  // of the user ID...
   describe('newToken', () => {
     test('creates new jwt from user', () => {
       const id = 123
@@ -53,7 +61,6 @@ describe('Authentication:', () => {
         },
         async send(result) {
           let user = await verifyToken(result.token)
-          user = User.findById(user.id)
           expect(user.email).toBe('hello@hello.com')
         }
       }
@@ -83,7 +90,7 @@ describe('Authentication:', () => {
     test('user must be real', async () => {
       expect.assertions(2)
 
-      const req = { body: { email: 'hello@hello.com', password: '293jssh' } }
+      const req = { body: { email: 'hello@me.com', password: '293jssh' } }
       const res = {
         status(status) {
           expect(status).toBe(401)
@@ -100,12 +107,7 @@ describe('Authentication:', () => {
     test('passwords must match', async () => {
       expect.assertions(2)
 
-      await User.create({
-        email: 'hello@me.com',
-        password: 'yoyoyo'
-      })
-
-      const req = { body: { email: 'hello@me.com', password: 'wrong' } }
+      const req = { body: { email: 'hello@hello.com', password: 'wrong' } }
       const res = {
         status(status) {
           expect(status).toBe(401)
@@ -122,10 +124,9 @@ describe('Authentication:', () => {
     test('creates new token', async () => {
       expect.assertions(2)
       const fields = {
-        email: 'hello@me.com',
-        password: 'yoyoyo'
+        email: 'hello@hello.com',
+        password: '293jssh'
       }
-      const savedUser = User.create(fields)
 
       const req = { body: fields }
       const res = {
@@ -135,8 +136,7 @@ describe('Authentication:', () => {
         },
         async send(result) {
           let user = await verifyToken(result.token)
-          user = User.findById(user.id)
-          expect(user.id).toBe(savedUser.id)
+          expect(user.id).toBe(0) // REVIEW: Not sure if it is a good idea to put magic number here
         }
       }
 
@@ -197,16 +197,29 @@ describe('Authentication:', () => {
     })
 
     test('finds user form token and passes on', async () => {
-      const user = User.create({
+      let token
+      const fields = {
         email: 'hello@hello.com',
-        password: '1234'
-      })
-      const token = `Bearer ${newToken(user)}`
-      const req = { headers: { authorization: token } }
+        password: '293jssh'
+      }
+      const res = {
+        status(status) {
+          return this
+        },
+        async send(result) {
+          token = result.token
+        }
+      }
 
+      await signin({ body: fields }, res)
+      // REVIEW:
+      // Depending on the signin function, so, another test. Is this the case?
+
+      const authorization = `Bearer ${token}`
+      const req = { headers: { authorization: authorization } }
       const next = () => {}
       await protect(req, {}, next)
-      expect(req.user.id).toBe(user.id)
+      expect(req.user.id).toBe(0)
       expect(req.user).not.toHaveProperty('password')
     })
   })
