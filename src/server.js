@@ -16,8 +16,6 @@ app.use(json())
 app.use(urlencoded({ extended: true }))
 app.use(morgan('dev'))
 
-app.post('/echo', (req, res) => res.status(201).send(req.body))
-
 app.post('/signup', signup)
 app.post('/signin', signin)
 
