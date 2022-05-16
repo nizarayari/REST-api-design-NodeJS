@@ -1,14 +1,17 @@
 import request from 'supertest'
 import { app } from '../server'
-import { UserModel } from '../resources/user/model'
+import { Users } from '../resources/user/model'
 import { newToken } from '../utils/auth'
 
 describe('API Authentication:', () => {
-  const User = new UserModel()
   let token
   beforeEach(async () => {
-    const user = User.create({ email: 'a@a.com', password: 'hello' })
+    const user = Users.create({ email: 'a@a.com', password: 'hello' })
     token = newToken(user)
+  })
+
+  afterEach(async () => {
+    Users.users = []
   })
 
   describe('api auth', () => {

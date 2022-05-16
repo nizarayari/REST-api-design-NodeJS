@@ -1,10 +1,13 @@
 import { newToken, verifyToken, signup, signin, protect } from '../auth'
 import jwt from 'jsonwebtoken'
 import config from '../../config'
-import { UserModel } from '../../resources/user/model'
+import { Users } from '../../resources/user/model'
 
 describe('Authentication:', () => {
-  const User = new UserModel()
+  afterEach(async () => {
+    Users.users = []
+  })
+
   describe('newToken', () => {
     test('creates new jwt from user', () => {
       const id = 123
@@ -42,7 +45,7 @@ describe('Authentication:', () => {
       await signup(req, res)
     })
 
-    test('creates user and and sends new token from user', async () => {
+    test('creates user and sends new token from user', async () => {
       expect.assertions(2)
 
       const req = { body: { email: 'hello@hello.com', password: '293jssh' } }
@@ -53,7 +56,7 @@ describe('Authentication:', () => {
         },
         async send(result) {
           let user = await verifyToken(result.token)
-          user = User.findById(user.id)
+          user = Users.findById(user.id)
           expect(user.email).toBe('hello@hello.com')
         }
       }
@@ -100,7 +103,7 @@ describe('Authentication:', () => {
     test('passwords must match', async () => {
       expect.assertions(2)
 
-      await User.create({
+      await Users.create({
         email: 'hello@me.com',
         password: 'yoyoyo'
       })
@@ -125,7 +128,7 @@ describe('Authentication:', () => {
         email: 'hello@me.com',
         password: 'yoyoyo'
       }
-      const savedUser = User.create(fields)
+      const savedUser = Users.create(fields)
 
       const req = { body: fields }
       const res = {
@@ -135,7 +138,7 @@ describe('Authentication:', () => {
         },
         async send(result) {
           let user = await verifyToken(result.token)
-          user = User.findById(user.id)
+          user = Users.findById(user.id)
           expect(user.id).toBe(savedUser.id)
         }
       }
@@ -197,7 +200,7 @@ describe('Authentication:', () => {
     })
 
     test('finds user form token and passes on', async () => {
-      const user = User.create({
+      const user = Users.create({
         email: 'hello@hello.com',
         password: '1234'
       })
